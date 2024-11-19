@@ -35,8 +35,6 @@ malignant_training_data = load_images(malignant_training_folder, np.array([0, 1]
 benign_testing_data = load_images(benign_testing_folder, np.array([1, 0]))
 malignant_testing_data = load_images(malignant_testing_folder, np.array([0, 1]))
 
-#benign training data
-
 #make the training data both the same size
 benign_training_data = benign_training_data[0 : len(malignant_training_data)]
 
@@ -60,3 +58,6 @@ np.save("melanoma_training_data.npy", training_data)
 testing_data = np.concatenate((benign_testing_data, malignant_testing_data))
 np.random.shuffle(testing_data)
 np.save("melanoma_testing_data.npy", testing_data)
+
+# print(training_data[0][0])
+# print(testing_data[0][0])
