@@ -12,10 +12,10 @@ img_size = 50
 
 training_data = np.load("melanoma_training_data.npy", allow_pickle=True)
 
-for row in training_data:
-    print(row[0])
-    print(row[1])
-    break
+# for row in training_data:
+#     print(row[0])
+#     print(row[1])
+#     break
 
 # putting all the image arrays into this tensor
 train_X = torch.tensor(np.array([item[0] for item in training_data]), dtype=torch.float32)
