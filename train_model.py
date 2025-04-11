@@ -2,7 +2,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
+import torchvision
+import math
 from nn_class import Net
+from torch.utils.data import DataLoader, Dataset
+
 
 
 #sentdex neural networks from scratch
