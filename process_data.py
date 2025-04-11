@@ -45,8 +45,8 @@ benign_testing_data = np.array(benign_testing_data, dtype=object)
 malignant_testing_data = np.array(malignant_testing_data, dtype=object)
 
 #print len
-# print(f"Benign training count: {len(benign_training_data)}")
-# print(f"Malignant training count: {len(malignant_training_data)}")
+print(f"Benign training count: {len(benign_training_data)}")
+print(f"Malignant training count: {len(malignant_training_data)}")
 # print(f"Benign testing count: {len(benign_testing_data)}")
 # print(f"Malignant testing count: {len(malignant_testing_data)}")
 
