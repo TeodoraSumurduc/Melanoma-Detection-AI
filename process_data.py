@@ -1,17 +1,13 @@
 import os
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import torchvision
-import math
-import torchvision.transforms.functional as TF
-from nn_class import Net
+from torch import optim, nn
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms.functional import normalize, to_tensor
 from torchvision import transforms
+from PIL import Image
+from nn_class import Net
 
 # one-hot vectors
 # [1, 0] = benign
@@ -66,8 +62,8 @@ class MelanomaImageDataset(Dataset):
         for filename in os.listdir(folder):
             try:
                 path = os.path.join(folder, filename)
-                img = cv2.imread(path)
-                img = cv2.resize(img, (img_size, img_size))
+                img = Image.open(path).convert("RGB")
+                img = img.resize((img_size, img_size))
                 self.data.append([img, label])
             except Exception as e:
                 print(f"Error loading {filename}: {e}")
@@ -92,22 +88,19 @@ class MelanomaDataset(MelanomaImageDataset):
 
         return image, label
 
-
-# def load_images(folder, label):
-#     data = []
-#     for filename in os.listdir(folder):
-#         try:
-#             path = os.path.join(folder, filename)
-#             img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-#             img = cv2.resize(img, (img_size, img_size))
-#             data.append([img, label])
-#         except Exception as e:
-#             print(f"Error loading {filename}: {e}")
-#     return data
-benign_training_data = MelanomaDataset(benign_training_folder, np.array([1, 0]))
+benign_training_data = MelanomaDataset(benign_training_folder, np.array([1, 0]), transform=train_transforms)
 benign_training_dataloader = DataLoader(benign_training_data, batch_size=100, shuffle=True, num_workers=2, collate_fn=collate_fn_train)
 
 print(benign_training_dataloader.dataset[0])
+
+batch_size = 100
+epochs = 2
+lr = 0.001
+
+net = Net()
+optimizer = optim.Adam(net.parameters(), lr=lr)
+loss_function = nn.MSELoss()
+
 # benign_training_data = load_images(benign_training_folder, np.array([1, 0]))
 # malignant_training_data = load_images(malignant_training_folder, np.array([0, 1]))
 # benign_testing_data = load_images(benign_testing_folder, np.array([1, 0]))
