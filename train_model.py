@@ -5,6 +5,8 @@ import torch.optim as optim
 import numpy as np
 import torchvision
 import math
+
+from sklearn.metrics import classification_report
 from torchvision.transforms.functional import normalize, to_tensor
 from torchvision import transforms
 from matplotlib import pyplot as plt
@@ -13,35 +15,15 @@ from nn_class import Net
 from torch.utils.data import DataLoader, ConcatDataset
 from process_data import MelanomaDataset
 
-benign_training_folder = "melanoma_cancer_dataset/train/benign/"
-malignant_training_folder = "melanoma_cancer_dataset/train/malignant/"
-
-benign_testing_folder = "melanoma_cancer_dataset/test/benign/"
-malignant_testing_folder = "melanoma_cancer_dataset/test/malignant/"
-
-train_transforms = transforms.Compose([
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomVerticalFlip(),
-    transforms.RandomRotation(degrees=15),
-    transforms.ColorJitter(
-        brightness=0.1,  # Ajustează luminozitatea cu ±10%
-        contrast=0.1,  # Ajustează contrastul cu ±10%
-        saturation=0.05,  # Ajustează saturația cu ±5%
-        hue=0.02  # Ajustează nuanța cu ±2%
-    ),
-    transforms.ToTensor(),
-    transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-])
-
 def collate_fn_train(examples):
     images = []
     labels = []
     for example in examples:
         image, label = example
-        image = to_tensor(image)
+        #image = to_tensor(image)
         image = normalize(image, [0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
         image = image.unsqueeze(0)
-        label = torch.tensor(label).unsqueeze(0)
+        label = torch.tensor(label).argmax().unsqueeze(0)
         images.append(image)
         labels.append(label)
 
@@ -50,82 +32,212 @@ def collate_fn_train(examples):
 
     return images_batch, labels_batch
 
-benign_training_dataset = MelanomaDataset(benign_training_folder, np.array([1, 0]), transform=train_transforms)
-malignant_training_dataset = MelanomaDataset(malignant_training_folder, np.array([1, 0]), transform=train_transforms)
 
-benign_testing_dataset = MelanomaDataset(benign_testing_folder, np.array([1, 0]))
-malignant_testing_dataset = MelanomaDataset(malignant_testing_folder, np.array([0, 1]))
+def main():
+    benign_training_folder = "melanoma_cancer_dataset/train/benign/"
+    malignant_training_folder = "melanoma_cancer_dataset/train/malignant/"
 
-train_dataset = ConcatDataset([benign_training_dataset, malignant_training_dataset])
-test_dataset = ConcatDataset([benign_testing_dataset, malignant_testing_dataset])
+    benign_testing_folder = "melanoma_cancer_dataset/test/benign/"
+    malignant_testing_folder = "melanoma_cancer_dataset/test/malignant/"
 
-train_dataloader = DataLoader(train_dataset, batch_size=100, shuffle=True, num_workers=2, collate_fn=collate_fn_train)
-test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=True, num_workers=2, collate_fn=collate_fn_train)
+    train_transforms = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        transforms.RandomRotation(degrees=15),
+        transforms.ColorJitter(
+            brightness=0.1,  # Ajustează luminozitatea cu ±10%
+            contrast=0.1,  # Ajustează contrastul cu ±10%
+            saturation=0.05,  # Ajustează saturația cu ±5%
+            hue=0.02  # Ajustează nuanța cu ±2%
+        ),
+        transforms.ToTensor(),
+        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+    ])
 
-print(torch.cuda.is_available())
+    test_transforms = transforms.Compose([
+        transforms.Resize((50, 50)),
+        transforms.ToTensor(),
+        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+    ])
 
-#sentdex neural networks from scratch
-#50 x 50 pixels
-img_size = 50
+    benign_training_dataset = MelanomaDataset(benign_training_folder, np.array([1, 0]), transform=train_transforms)
+    malignant_training_dataset = MelanomaDataset(malignant_training_folder, np.array([0, 1]),
+                                                 transform=train_transforms)
 
-batch_size = 100
-epochs = 10
-lr = 1e-3
+    benign_testing_dataset = MelanomaDataset(benign_testing_folder, np.array([1, 0]), transform=test_transforms)
+    malignant_testing_dataset = MelanomaDataset(malignant_testing_folder, np.array([0, 1]), transform=test_transforms)
 
-model = Net().cuda()
+    train_dataset = ConcatDataset([benign_training_dataset, malignant_training_dataset])
+    test_dataset = ConcatDataset([benign_testing_dataset, malignant_testing_dataset])
 
-loss_fn = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=lr)
+    train_dataloader = DataLoader(train_dataset, batch_size=100, shuffle=True, num_workers=2,
+                                  collate_fn=collate_fn_train)
+    test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=True, num_workers=2, collate_fn=collate_fn_train)
 
-train_losses = []
-val_losses = []
+    print(f"Cuda available: {torch.cuda.is_available()}")
 
-# Training loop
-for epoch in range(epochs):
-    model.train()
-    train_loss = 0.0
+    img_size = 50
 
-    for batch in train_dataloader:
-        images, labels = batch
-        images = images.cuda()
-        labels = labels.cuda().long()  # Important pentru CrossEntropyLoss!
+    batch_size = 100
+    epochs = 30
+    lr = 1e-3
 
-        optimizer.zero_grad()
-        outputs = model(images)
+    model = Net().cuda()
 
-        loss = loss_fn(outputs, labels)
-        loss.backward()
-        optimizer.step()
+    loss_fn = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
-        train_loss += loss.item()
+    train_losses = []
+    val_losses = []
 
-    train_loss /= len(train_dataloader)
+    # Training loop
+    for epoch in range(epochs):
+        model.train()
+        train_loss = 0.0
 
-    model.eval()
-    val_loss = 0.0
-    with torch.no_grad():
-        for batch in test_dataloader:
+        for batch in train_dataloader:
             images, labels = batch
             images = images.cuda()
-            labels = labels.cuda().long()
+            labels = labels.cuda().long()  # Important pentru CrossEntropyLoss!
 
+            optimizer.zero_grad()
             outputs = model(images)
+
             loss = loss_fn(outputs, labels)
-            val_loss += loss.item()
+            loss.backward()
+            optimizer.step()
 
-    val_loss /= len(test_dataloader)
+            train_loss += loss.item()
 
-    train_losses.append(train_loss)
-    val_losses.append(val_loss)
+        train_loss /= len(train_dataloader)
 
-    print(f"Epoch {epoch+1}/{epochs} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for batch in test_dataloader:
+                images, labels = batch
+                images = images.cuda()
+                labels = labels.cuda().long()
 
-plt.plot(train_losses, label="Train Loss")
-plt.plot(val_losses, label="Val Loss")
-plt.xlabel("Epoch")
-plt.ylabel("Loss")
-plt.legend()
-plt.show()
+                outputs = model(images)
+                loss = loss_fn(outputs, labels)
+                val_loss += loss.item()
+
+        val_loss /= len(test_dataloader)
+
+        train_losses.append(train_loss)
+        val_losses.append(val_loss)
+
+        print(f"Epoch {epoch + 1}/{epochs} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
+
+    y_true = []
+    y_pred = []
+
+    #model = Net().cuda()
+
+    model.eval()
+    with torch.no_grad():
+        for images, labels in test_dataloader:
+            images = images.cuda()
+            labels = labels.cuda().long()
+            outputs = model(images)
+            preds = torch.argmax(outputs, dim=1)
+            print("Labeluri:", labels[:10])
+            print("Predicții:", torch.argmax(outputs, dim=1)[:10])
+            y_true.extend(labels.cpu().numpy())
+            y_pred.extend(preds.cpu().numpy())
+
+    print(classification_report(y_true, y_pred, target_names=["benign", "malignant"]))
+
+    torch.save(model.state_dict(), "melanoma_model.pth")
+    print("Model salvat cu succes.")
+
+    # plt.plot(train_losses, label="Train Loss")
+    # plt.plot(val_losses, label="Val Loss")
+    # plt.xlabel("Epoch")
+    # plt.ylabel("Loss")
+    # plt.legend()
+    # plt.show()
+
+if __name__ == "__main__":
+    main()
+
+# benign_training_dataset = MelanomaDataset(benign_training_folder, np.array([1, 0]), transform=train_transforms)
+# malignant_training_dataset = MelanomaDataset(malignant_training_folder, np.array([1, 0]), transform=train_transforms)
+#
+# benign_testing_dataset = MelanomaDataset(benign_testing_folder, np.array([1, 0]))
+# malignant_testing_dataset = MelanomaDataset(malignant_testing_folder, np.array([0, 1]))
+#
+# train_dataset = ConcatDataset([benign_training_dataset, malignant_training_dataset])
+# test_dataset = ConcatDataset([benign_testing_dataset, malignant_testing_dataset])
+#
+# train_dataloader = DataLoader(train_dataset, batch_size=100, shuffle=True, num_workers=2, collate_fn=collate_fn_train)
+# test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=True, num_workers=2, collate_fn=collate_fn_train)
+#
+# print(torch.cuda.is_available())
+#
+# #sentdex neural networks from scratch
+# #50 x 50 pixels
+# img_size = 50
+#
+# batch_size = 100
+# epochs = 10
+# lr = 1e-3
+#
+# model = Net().cuda()
+#
+# loss_fn = nn.CrossEntropyLoss()
+# optimizer = optim.Adam(model.parameters(), lr=lr)
+#
+# train_losses = []
+# val_losses = []
+#
+# # Training loop
+# for epoch in range(epochs):
+#     model.train()
+#     train_loss = 0.0
+#
+#     for batch in train_dataloader:
+#         images, labels = batch
+#         images = images.cuda()
+#         labels = labels.cuda().long()  # Important pentru CrossEntropyLoss!
+#
+#         optimizer.zero_grad()
+#         outputs = model(images)
+#
+#         loss = loss_fn(outputs, labels)
+#         loss.backward()
+#         optimizer.step()
+#
+#         train_loss += loss.item()
+#
+#     train_loss /= len(train_dataloader)
+#
+#     model.eval()
+#     val_loss = 0.0
+#     with torch.no_grad():
+#         for batch in test_dataloader:
+#             images, labels = batch
+#             images = images.cuda()
+#             labels = labels.cuda().long()
+#
+#             outputs = model(images)
+#             loss = loss_fn(outputs, labels)
+#             val_loss += loss.item()
+#
+#     val_loss /= len(test_dataloader)
+#
+#     train_losses.append(train_loss)
+#     val_losses.append(val_loss)
+#
+#     print(f"Epoch {epoch+1}/{epochs} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
+#
+# plt.plot(train_losses, label="Train Loss")
+# plt.plot(val_losses, label="Val Loss")
+# plt.xlabel("Epoch")
+# plt.ylabel("Loss")
+# plt.legend()
+# plt.show()
 
 # dataloader = DataLoader(dataset=dataset, batch_size=100, shuffle=True, num_workers=2)
 # first_data = dataset[0]
