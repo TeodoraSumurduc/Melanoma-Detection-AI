@@ -91,6 +91,23 @@ class MelanomaDataset(MelanomaImageDataset):
 
         return image, label
 
+# folder_path = "melanoma_cancer_dataset/train/benign/"
+# files = os.listdir(folder_path)
+#
+# # Numărăm doar imaginile (fișierele .jpg, .png etc.)
+# image_extensions = [".jpg", ".jpeg", ".png", ".bmp", ".gif"]
+# num_images = sum(1 for file in files if os.path.splitext(file)[1].lower() in image_extensions)
+#
+# print(f"Număr de imagini benign: {num_images}")
+#
+# folder_path = "melanoma_cancer_dataset/train/malignant/"
+# files = os.listdir(folder_path)
+#
+# # Numărăm doar imaginile (fișierele .jpg, .png etc.)
+# image_extensions = [".jpg", ".jpeg", ".png", ".bmp", ".gif"]
+# num_images = sum(1 for file in files if os.path.splitext(file)[1].lower() in image_extensions)
+#
+# print(f"Număr de imagini melanoma: {num_images}")
 #
 # benign_training_data = MelanomaDataset(benign_training_folder, np.array([1, 0]), transform=train_transforms)
 # benign_training_dataloader = DataLoader(benign_training_data, batch_size=100, shuffle=True, num_workers=2, collate_fn=collate_fn_train)
@@ -131,8 +148,8 @@ class MelanomaDataset(MelanomaImageDataset):
 # #print len
 # print(f"Benign training count: {len(benign_training_data)}")
 # print(f"Malignant training count: {len(malignant_training_data)}")
-# # print(f"Benign testing count: {len(benign_testing_data)}")
-# # print(f"Malignant testing count: {len(malignant_testing_data)}")
+# print(f"Benign testing count: {len(benign_testing_data)}")
+# print(f"Malignant testing count: {len(malignant_testing_data)}")
 #
 # #concatenate and shuffle the data
 # training_data = np.concatenate((benign_training_data, malignant_training_data))
