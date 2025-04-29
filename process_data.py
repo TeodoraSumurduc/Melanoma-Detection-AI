@@ -91,7 +91,7 @@ class MelanomaDataset(MelanomaImageDataset):
 
         return image, label
 
-# folder_path = "melanoma_cancer_dataset/train/benign/"
+# folder_path = "melanoma_cancer_dataset/test/benign/"
 # files = os.listdir(folder_path)
 #
 # # Numărăm doar imaginile (fișierele .jpg, .png etc.)
@@ -100,7 +100,7 @@ class MelanomaDataset(MelanomaImageDataset):
 #
 # print(f"Număr de imagini benign: {num_images}")
 #
-# folder_path = "melanoma_cancer_dataset/train/malignant/"
+# folder_path = "melanoma_cancer_dataset/test/malignant/"
 # files = os.listdir(folder_path)
 #
 # # Numărăm doar imaginile (fișierele .jpg, .png etc.)

@@ -1,4 +1,6 @@
 import random
+from collections import Counter
+
 import torch
 import torch.cuda
 import torch.nn as nn
@@ -40,8 +42,22 @@ def main():
         transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
 
-    benign_training_dataset = MelanomaDataset(benign_training_folder, 0, transform=None)
-    malignant_training_dataset = MelanomaDataset(malignant_training_folder, 1, transform=None)
+    train_transforms = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        transforms.RandomRotation(degrees=10),
+        transforms.ColorJitter(
+            brightness=0.05,  # Ajustează luminozitatea cu ±10%
+            contrast=0.05,  # Ajustează contrastul cu ±10%
+            saturation=0.05,  # Ajustează saturația cu ±5%
+            hue=0.02  # Ajustează nuanța cu ±2%
+        ),
+        transforms.ToTensor(),
+        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+    ])
+
+    benign_training_dataset = MelanomaDataset(benign_training_folder, 0, transform=train_transforms)
+    malignant_training_dataset = MelanomaDataset(malignant_training_folder, 1, transform=train_transforms)
 
     benign_testing_dataset = MelanomaDataset(benign_testing_folder, 0, transform=test_transforms)
     malignant_testing_dataset = MelanomaDataset(malignant_testing_folder, 1, transform=test_transforms)
@@ -68,33 +84,33 @@ def main():
     val_losses = []
 
     for epoch in range(epochs):
-        flip_prob = random.random()
-        rotation_deg = random.uniform(0, 25)
-        brightness = np.random.uniform(0.0, 0.5)
-        contrast = np.random.uniform(0.0, 0.25)
-        saturation = np.random.uniform(0.0, 0.25)
-        hue = np.random.uniform(-0.05, 0.05)
-        hue_tuple = (0, hue) if hue >= 0 else (hue, 0)
-
-        train_transforms = transforms.Compose([
-            transforms.RandomHorizontalFlip(p=flip_prob),
-            transforms.RandomVerticalFlip(p=flip_prob),
-            transforms.RandomRotation(degrees=rotation_deg),
-            transforms.ColorJitter(
-                brightness=brightness,
-                contrast=contrast,
-                saturation=saturation,
-                hue=hue_tuple
-            ),
-            transforms.ToTensor(),
-            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-        ])
-
-        # === UPDATEAZĂ TRANSFORM-UL ÎN DATASETURI ===
-        benign_training_dataset.transform = train_transforms
-        malignant_training_dataset.transform = train_transforms
-
-        # ... RESTUL TRAININGULUI (nu se schimbă față de ce ai deja) ...
+        # flip_prob = random.random()
+        # rotation_deg = random.uniform(0, 25)
+        # brightness = np.random.uniform(0.0, 0.5)
+        # contrast = np.random.uniform(0.0, 0.25)
+        # saturation = np.random.uniform(0.0, 0.25)
+        # hue = np.random.uniform(-0.05, 0.05)
+        # hue_tuple = (0, hue) if hue >= 0 else (hue, 0)
+        #
+        # train_transforms = transforms.Compose([
+        #     transforms.RandomHorizontalFlip(p=flip_prob),
+        #     transforms.RandomVerticalFlip(p=flip_prob),
+        #     transforms.RandomRotation(degrees=rotation_deg),
+        #     transforms.ColorJitter(
+        #         brightness=brightness,
+        #         contrast=contrast,
+        #         saturation=saturation,
+        #         hue=hue_tuple
+        #     ),
+        #     transforms.ToTensor(),
+        #     transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+        # ])
+        #
+        # # === UPDATEAZĂ TRANSFORM-UL ÎN DATASETURI ===
+        # benign_training_dataset.transform = train_transforms
+        # malignant_training_dataset.transform = train_transforms
+        #
+        # # ... RESTUL TRAININGULUI (nu se schimbă față de ce ai deja) ...
         model.train()
         train_loss = 0.0
 
@@ -129,8 +145,8 @@ def main():
         val_losses.append(val_loss)
 
         print(f"Epoch {epoch + 1}/{epochs} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
-        print(
-            f"Epoca {epoch + 1} Augmentări: rotation={rotation_deg:.2f}, brightness={brightness:.2f}, contrast={contrast:.2f}, saturation={saturation:.2f}, hue={hue:.2f}")
+        # print(
+        #     f"Epoca {epoch + 1} Augmentări: rotation={rotation_deg:.2f}, brightness={brightness:.2f}, contrast={contrast:.2f}, saturation={saturation:.2f}, hue={hue:.2f}")
 
 
     y_true = []
@@ -151,6 +167,7 @@ def main():
             y_pred.extend(preds.cpu().numpy())
 
     print(classification_report(y_true, y_pred, target_names=["benign", "malignant"]))
+    print(Counter(y_pred))
 
     torch.save(model.state_dict(), "melanoma_model.pth")
     print("Model salvat cu succes.")

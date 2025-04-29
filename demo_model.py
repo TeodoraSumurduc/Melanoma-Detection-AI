@@ -12,7 +12,7 @@ from PIL import Image
 from nn_class import Net  # asigură-te că importul e corect
 import numpy as np
 
-def apply_model(path, num_trials=3):
+def apply_model(path, num_trials=10):
     img_size = 64
 
     def get_transform():
@@ -22,18 +22,18 @@ def apply_model(path, num_trials=3):
         contrast = np.random.uniform(0.0, 0.25)
         saturation = np.random.uniform(0.0, 0.25)
         hue = np.random.uniform(-0.05, 0.05)
-        hue_tuple = (0, hue) if hue >= 0 else (hue, 0)
+        # hue_tuple = (0, hue) if hue >= 0 else (hue, 0)
 
         return transforms.Compose([
             transforms.Resize((img_size, img_size)),
-            transforms.RandomHorizontalFlip(p=flip_prob),
-            transforms.RandomVerticalFlip(p=flip_prob),
-            transforms.RandomRotation(degrees=rotation_deg),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
+            transforms.RandomRotation(degrees=15),
             transforms.ColorJitter(
-                brightness=brightness,
-                contrast=contrast,
-                saturation=saturation,
-                hue=hue_tuple
+                brightness=0.05,  # Ajustează luminozitatea cu ±10%
+                contrast=0.05,  # Ajustează contrastul cu ±10%
+                saturation=0.05,  # Ajustează saturația cu ±5%
+                hue=0.02  # Ajustează nuanța cu ±2%
             ),
             transforms.ToTensor(),
             transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
@@ -63,6 +63,7 @@ def apply_model(path, num_trials=3):
 
     return {
         "image_path": path,
+        "predictions": softmax_scores,
         "mean_probabilities": {
             "benign": round(float(mean_probs[0]) * 100, 2),
             "malignant": round(float(mean_probs[1]) * 100, 2)
@@ -71,4 +72,4 @@ def apply_model(path, num_trials=3):
     }
 
 
-print(apply_model("demo_pics/melanoma_10140.jpg"))
+print(apply_model("demo_pics/melanoma_10179.jpg"))
