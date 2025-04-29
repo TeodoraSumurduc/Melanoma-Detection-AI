@@ -2,12 +2,15 @@ import os
 import cv2
 import numpy as np
 import torch
+from matplotlib import pyplot as plt
+from sympy.physics.control.control_plots import matplotlib
 from torch import optim, nn
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms.functional import normalize, to_tensor
 from torchvision import transforms
 from PIL import Image
 from nn_class import Net
+
 
 # one-hot vectors
 # [1, 0] = benign
@@ -17,46 +20,46 @@ from nn_class import Net
 # img_size = 50
 
 # locations of image, files
-benign_training_folder = "melanoma_cancer_dataset/train/benign/"
-malignant_training_folder = "melanoma_cancer_dataset/train/malignant/"
+# benign_training_folder = "melanoma_cancer_dataset/train/benign/"
+# malignant_training_folder = "melanoma_cancer_dataset/train/malignant/"
+#
+# benign_testing_folder = "melanoma_cancer_dataset/test/benign/"
+# malignant_testing_folder = "melanoma_cancer_dataset/test/malignant/"
+#
+# train_transforms = transforms.Compose([
+#     transforms.RandomHorizontalFlip(),
+#     transforms.RandomVerticalFlip(),
+#     transforms.RandomRotation(degrees=15),
+#     transforms.ColorJitter(
+#         brightness=0.1,  # Ajustează luminozitatea cu ±10%
+#         contrast=0.1,  # Ajustează contrastul cu ±10%
+#         saturation=0.05,  # Ajustează saturația cu ±5%
+#         hue=0.02  # Ajustează nuanța cu ±2%
+#     ),
+#     transforms.ToTensor(),
+#     #transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+# ])
 
-benign_testing_folder = "melanoma_cancer_dataset/test/benign/"
-malignant_testing_folder = "melanoma_cancer_dataset/test/malignant/"
-
-train_transforms = transforms.Compose([
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomVerticalFlip(),
-    transforms.RandomRotation(degrees=15),
-    transforms.ColorJitter(
-        brightness=0.1,  # Ajustează luminozitatea cu ±10%
-        contrast=0.1,  # Ajustează contrastul cu ±10%
-        saturation=0.05,  # Ajustează saturația cu ±5%
-        hue=0.02  # Ajustează nuanța cu ±2%
-    ),
-    transforms.ToTensor(),
-    transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-])
-
-def collate_fn_train(examples):
-    images = []
-    labels = []
-    for example in examples:
-        image, label = example
-        image = to_tensor(image)
-        image = normalize(image, [0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-        image = image.unsqueeze(0)
-        label = torch.tensor(label).unsqueeze(0)
-        images.append(image)
-        labels.append(label)
-
-    images_batch = torch.cat(images)
-    labels_batch = torch.cat(labels)
-
-    return images_batch, labels_batch
-
+# def collate_fn_train(examples):
+#     images = []
+#     labels = []
+#     for example in examples:
+#         image, label = example
+#         # image = to_tensor(image)
+#         image = normalize(image, [0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+#         image = image.unsqueeze(0)
+#         label = torch.tensor(label).unsqueeze(0)
+#         images.append(image)
+#         labels.append(label)
+#
+#     images_batch = torch.cat(images)
+#     labels_batch = torch.cat(labels)
+#
+#     return images_batch, labels_batch
+#
 
 class MelanomaImageDataset(Dataset):
-    def __init__(self, folder, label, img_size=50):
+    def __init__(self, folder, label, img_size=64):
         self.data = []
         self.label = label
         for filename in os.listdir(folder):
@@ -88,18 +91,28 @@ class MelanomaDataset(MelanomaImageDataset):
 
         return image, label
 
-benign_training_data = MelanomaDataset(benign_training_folder, np.array([1, 0]), transform=train_transforms)
-benign_training_dataloader = DataLoader(benign_training_data, batch_size=100, shuffle=True, num_workers=2, collate_fn=collate_fn_train)
+#
+# benign_training_data = MelanomaDataset(benign_training_folder, np.array([1, 0]), transform=train_transforms)
+# benign_training_dataloader = DataLoader(benign_training_data, batch_size=100, shuffle=True, num_workers=2, collate_fn=collate_fn_train)
+#
+# import matplotlib.pyplot as plt
+# matplotlib.use('TkAgg')
+#
+# img, label = benign_training_dataloader.dataset[0]
+# img_np = img.numpy().transpose(1, 2, 0)  # [C,H,W] -> [H,W,C]
+# plt.imshow(img_np)
+# plt.title(f"Label: {label}")
+# plt.axis('off')
+# plt.show()
 
-print(benign_training_dataloader.dataset[0])
-
-batch_size = 100
-epochs = 2
-lr = 0.001
-
-net = Net()
-optimizer = optim.Adam(net.parameters(), lr=lr)
-loss_function = nn.MSELoss()
+#
+# batch_size = 100
+# epochs = 2
+# lr = 0.001
+#
+# net = Net()
+# optimizer = optim.Adam(net.parameters(), lr=lr)
+# loss_function = nn.MSELoss()
 
 # benign_training_data = load_images(benign_training_folder, np.array([1, 0]))
 # malignant_training_data = load_images(malignant_training_folder, np.array([0, 1]))
