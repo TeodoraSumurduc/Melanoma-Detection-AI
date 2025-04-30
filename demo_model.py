@@ -28,13 +28,13 @@ def apply_model(path, num_trials=10):
             transforms.Resize((img_size, img_size)),
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
-            transforms.RandomRotation(degrees=15),
-            transforms.ColorJitter(
-                brightness=0.05,  # Ajustează luminozitatea cu ±10%
-                contrast=0.05,  # Ajustează contrastul cu ±10%
-                saturation=0.05,  # Ajustează saturația cu ±5%
-                hue=0.02  # Ajustează nuanța cu ±2%
-            ),
+            transforms.RandomRotation(degrees=10),
+            # transforms.ColorJitter(
+            #     brightness=0.05,  # Ajustează luminozitatea cu ±10%
+            #     contrast=0.05,  # Ajustează contrastul cu ±10%
+            #     saturation=0.05,  # Ajustează saturația cu ±5%
+            #     hue=0.02  # Ajustează nuanța cu ±2%
+            # ),
             transforms.ToTensor(),
             transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
         ])
@@ -44,7 +44,9 @@ def apply_model(path, num_trials=10):
         image = get_transform()(img).unsqueeze(0).cuda()
         return image
 
-    model = Net().cuda()
+    # model = Net().cuda()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = Net().to(device)
     model.load_state_dict(torch.load("melanoma_model.pth"))
     model.eval()
 
@@ -72,4 +74,4 @@ def apply_model(path, num_trials=10):
     }
 
 
-print(apply_model("demo_pics/melanoma_10179.jpg"))
+print(apply_model("demo_pics/melanoma_5080.jpg"))

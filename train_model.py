@@ -1,3 +1,4 @@
+import os
 import random
 from collections import Counter
 
@@ -8,6 +9,8 @@ import torch.optim as optim
 import numpy as np
 from sklearn.metrics import classification_report
 from torchvision import transforms
+from torchvision.utils import save_image
+
 from nn_class import Net
 from torch.utils.data import DataLoader, ConcatDataset
 from process_data import MelanomaDataset
@@ -46,12 +49,12 @@ def main():
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
         transforms.RandomRotation(degrees=10),
-        transforms.ColorJitter(
-            brightness=0.05,  # Ajustează luminozitatea cu ±10%
-            contrast=0.05,  # Ajustează contrastul cu ±10%
-            saturation=0.05,  # Ajustează saturația cu ±5%
-            hue=0.02  # Ajustează nuanța cu ±2%
-        ),
+        # transforms.ColorJitter(
+        #     brightness=0.05,  # Ajustează luminozitatea cu ±10%
+        #     contrast=0.05,  # Ajustează contrastul cu ±10%
+        #     saturation=0.05,  # Ajustează saturația cu ±5%
+        #     hue=0.02  # Ajustează nuanța cu ±2%
+        # ),
         transforms.ToTensor(),
         transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
@@ -76,7 +79,10 @@ def main():
     epochs = 30
     lr = 1e-3
 
-    model = Net().cuda()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = Net().to(device)
+
+    # model = Net().cuda()
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
@@ -116,8 +122,11 @@ def main():
 
         for batch in train_dataloader:
             images, labels = batch
-            images = images.cuda()
-            labels = labels.cuda().long()
+            # images = images.cuda()
+            # labels = labels.cuda().long()
+
+            images = images.to(device)
+            labels = labels.to(device)
 
             optimizer.zero_grad()
             outputs = model(images)
@@ -133,8 +142,12 @@ def main():
         with torch.no_grad():
             for batch in test_dataloader:
                 images, labels = batch
-                images = images.cuda()
-                labels = labels.cuda().long()
+                # images = images.cuda()
+                # labels = labels.cuda().long()
+
+                images = images.to(device)
+                labels = labels.to(device)
+
                 outputs = model(images)
                 loss = loss_fn(outputs, labels)
                 val_loss += loss.item()
@@ -151,20 +164,36 @@ def main():
 
     y_true = []
     y_pred = []
+    output_dir = "false_negatives"
+    os.makedirs(output_dir, exist_ok=True)
+
+    false_negatives = []
 
     # model = Net().cuda()
 
     model.eval()
     with torch.no_grad():
         for images, labels in test_dataloader:
-            images = images.cuda()
-            labels = labels.cuda().long()
+            # images = images.cuda()
+            # labels = labels.cuda().long()
+
+            images = images.to(device)
+            labels = labels.to(device)
+
             outputs = model(images)
             preds = torch.argmax(outputs, dim=1)
             print("Labeluri:", labels[:10])
             print("Predicții:", torch.argmax(outputs, dim=1)[:10])
             y_true.extend(labels.cpu().numpy())
             y_pred.extend(preds.cpu().numpy())
+
+            for i in range(len(labels)):
+                if labels[i] == 1 and preds[i] == 0:
+                    img_tensor = images[i].cpu()
+                    false_negatives.append(img_tensor)
+
+                    img_path = os.path.join(output_dir, f"fn_{len(false_negatives)}.png")
+                    save_image(img_tensor, img_path)
 
     print(classification_report(y_true, y_pred, target_names=["benign", "malignant"]))
     print(Counter(y_pred))
