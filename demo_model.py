@@ -16,25 +16,17 @@ def apply_model(path, num_trials=10):
     img_size = 64
 
     def get_transform():
-        flip_prob = random.random()
-        rotation_deg = random.uniform(0, 25)
-        brightness = np.random.uniform(0.0, 0.5)
-        contrast = np.random.uniform(0.0, 0.25)
-        saturation = np.random.uniform(0.0, 0.25)
-        hue = np.random.uniform(-0.05, 0.05)
-        # hue_tuple = (0, hue) if hue >= 0 else (hue, 0)
-
         return transforms.Compose([
             transforms.Resize((img_size, img_size)),
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
             transforms.RandomRotation(degrees=10),
-            # transforms.ColorJitter(
-            #     brightness=0.05,  # Ajustează luminozitatea cu ±10%
-            #     contrast=0.05,  # Ajustează contrastul cu ±10%
-            #     saturation=0.05,  # Ajustează saturația cu ±5%
-            #     hue=0.02  # Ajustează nuanța cu ±2%
-            # ),
+            transforms.ColorJitter(
+                brightness=0.05,  # Ajustează luminozitatea cu ±10%
+                contrast=0.05,  # Ajustează contrastul cu ±10%
+                saturation=0.05,  # Ajustează saturația cu ±5%
+                hue=0.02  # Ajustează nuanța cu ±2%
+            ),
             transforms.ToTensor(),
             transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
         ])
@@ -44,10 +36,9 @@ def apply_model(path, num_trials=10):
         image = get_transform()(img).unsqueeze(0).cuda()
         return image
 
-    # model = Net().cuda()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = Net().to(device)
-    model.load_state_dict(torch.load("melanoma_model_92.pth"))
+    model.load_state_dict(torch.load("melanoma_model.pth"))
     model.eval()
 
     softmax_scores = []
