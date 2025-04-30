@@ -12,12 +12,6 @@ from PIL import Image
 from nn_class import Net
 
 
-# one-hot vectors
-# [1, 0] = benign
-# [0, 1] = melanoma
-
-# made all images the same size 50x50 pixels
-# img_size = 50
 
 # locations of image, files
 # benign_training_folder = "melanoma_cancer_dataset/train/benign/"
@@ -121,44 +115,3 @@ class MelanomaDataset(MelanomaImageDataset):
 # plt.title(f"Label: {label}")
 # plt.axis('off')
 # plt.show()
-
-#
-# batch_size = 100
-# epochs = 2
-# lr = 0.001
-#
-# net = Net()
-# optimizer = optim.Adam(net.parameters(), lr=lr)
-# loss_function = nn.MSELoss()
-
-# benign_training_data = load_images(benign_training_folder, np.array([1, 0]))
-# malignant_training_data = load_images(malignant_training_folder, np.array([0, 1]))
-# benign_testing_data = load_images(benign_testing_folder, np.array([1, 0]))
-# malignant_testing_data = load_images(malignant_testing_folder, np.array([0, 1]))
-#
-# #make the training data both the same size
-# benign_training_data = benign_training_data[0 : len(malignant_training_data)]
-#
-# #convert the lists to numpy arrays for concatenation
-# benign_training_data = np.array(benign_training_data, dtype=object)
-# malignant_training_data = np.array(malignant_training_data, dtype=object)
-# benign_testing_data = np.array(benign_testing_data, dtype=object)
-# malignant_testing_data = np.array(malignant_testing_data, dtype=object)
-#
-# #print len
-# print(f"Benign training count: {len(benign_training_data)}")
-# print(f"Malignant training count: {len(malignant_training_data)}")
-# print(f"Benign testing count: {len(benign_testing_data)}")
-# print(f"Malignant testing count: {len(malignant_testing_data)}")
-#
-# #concatenate and shuffle the data
-# training_data = np.concatenate((benign_training_data, malignant_training_data))
-# np.random.shuffle(training_data)
-# np.save("melanoma_training_data.npy", training_data)
-#
-# testing_data = np.concatenate((benign_testing_data, malignant_testing_data))
-# np.random.shuffle(testing_data)
-# np.save("melanoma_testing_data.npy", testing_data)
-#
-# # print(training_data[0][0])
-# # print(testing_data[0][0])

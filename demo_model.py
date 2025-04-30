@@ -47,7 +47,7 @@ def apply_model(path, num_trials=10):
     # model = Net().cuda()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = Net().to(device)
-    model.load_state_dict(torch.load("melanoma_model.pth"))
+    model.load_state_dict(torch.load("melanoma_model_92.pth"))
     model.eval()
 
     softmax_scores = []
@@ -74,4 +74,4 @@ def apply_model(path, num_trials=10):
     }
 
 
-print(apply_model("demo_pics/melanoma_5080.jpg"))
+print(apply_model("demo_pics/melanoma_10179.jpg"))

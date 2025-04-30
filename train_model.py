@@ -1,15 +1,11 @@
-import os
-import random
 from collections import Counter
-
 import torch
 import torch.cuda
 import torch.nn as nn
 import torch.optim as optim
-import numpy as np
-from sklearn.metrics import classification_report
+from matplotlib import pyplot as plt
+from sklearn.metrics import classification_report, roc_curve, auc, confusion_matrix, ConfusionMatrixDisplay
 from torchvision import transforms
-from torchvision.utils import save_image
 
 from nn_class import Net
 from torch.utils.data import DataLoader, ConcatDataset
@@ -21,8 +17,6 @@ def collate_fn_train(examples):
     labels = []
     for example in examples:
         image, label = example
-        # image = to_tensor(image)
-        # image = normalize(image, [0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
         image = image.unsqueeze(0)
         label = torch.tensor(label).unsqueeze(0)
         images.append(image)
@@ -49,12 +43,12 @@ def main():
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
         transforms.RandomRotation(degrees=10),
-        # transforms.ColorJitter(
-        #     brightness=0.05,  # Ajustează luminozitatea cu ±10%
-        #     contrast=0.05,  # Ajustează contrastul cu ±10%
-        #     saturation=0.05,  # Ajustează saturația cu ±5%
-        #     hue=0.02  # Ajustează nuanța cu ±2%
-        # ),
+        transforms.ColorJitter(
+            brightness=0.05,  # luminozitatea cu ±10%
+            contrast=0.05,  # contrastul cu ±10%
+            saturation=0.05,  # saturația cu ±5%
+            hue=0.02  #  nuanța cu ±2%
+        ),
         transforms.ToTensor(),
         transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
@@ -74,8 +68,6 @@ def main():
 
     print(f"Cuda available: {torch.cuda.is_available()}")
 
-    # img_size = 100
-    # batch_size = 100
     epochs = 30
     lr = 1e-3
 
@@ -90,33 +82,7 @@ def main():
     val_losses = []
 
     for epoch in range(epochs):
-        # flip_prob = random.random()
-        # rotation_deg = random.uniform(0, 25)
-        # brightness = np.random.uniform(0.0, 0.5)
-        # contrast = np.random.uniform(0.0, 0.25)
-        # saturation = np.random.uniform(0.0, 0.25)
-        # hue = np.random.uniform(-0.05, 0.05)
-        # hue_tuple = (0, hue) if hue >= 0 else (hue, 0)
-        #
-        # train_transforms = transforms.Compose([
-        #     transforms.RandomHorizontalFlip(p=flip_prob),
-        #     transforms.RandomVerticalFlip(p=flip_prob),
-        #     transforms.RandomRotation(degrees=rotation_deg),
-        #     transforms.ColorJitter(
-        #         brightness=brightness,
-        #         contrast=contrast,
-        #         saturation=saturation,
-        #         hue=hue_tuple
-        #     ),
-        #     transforms.ToTensor(),
-        #     transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-        # ])
-        #
-        # # === UPDATEAZĂ TRANSFORM-UL ÎN DATASETURI ===
-        # benign_training_dataset.transform = train_transforms
-        # malignant_training_dataset.transform = train_transforms
-        #
-        # # ... RESTUL TRAININGULUI (nu se schimbă față de ce ai deja) ...
+
         model.train()
         train_loss = 0.0
 
@@ -158,24 +124,17 @@ def main():
         val_losses.append(val_loss)
 
         print(f"Epoch {epoch + 1}/{epochs} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
-        # print(
-        #     f"Epoca {epoch + 1} Augmentări: rotation={rotation_deg:.2f}, brightness={brightness:.2f}, contrast={contrast:.2f}, saturation={saturation:.2f}, hue={hue:.2f}")
 
 
     y_true = []
     y_pred = []
-    output_dir = "false_negatives"
-    os.makedirs(output_dir, exist_ok=True)
 
-    false_negatives = []
+    y_scores = []
 
-    # model = Net().cuda()
 
     model.eval()
     with torch.no_grad():
         for images, labels in test_dataloader:
-            # images = images.cuda()
-            # labels = labels.cuda().long()
 
             images = images.to(device)
             labels = labels.to(device)
@@ -187,16 +146,58 @@ def main():
             y_true.extend(labels.cpu().numpy())
             y_pred.extend(preds.cpu().numpy())
 
-            for i in range(len(labels)):
-                if labels[i] == 1 and preds[i] == 0:
-                    img_tensor = images[i].cpu()
-                    false_negatives.append(img_tensor)
-
-                    img_path = os.path.join(output_dir, f"fn_{len(false_negatives)}.png")
-                    save_image(img_tensor, img_path)
+            probs = torch.softmax(outputs, dim=1)[:, 1]
+            y_scores.extend(probs.cpu().numpy())
 
     print(classification_report(y_true, y_pred, target_names=["benign", "malignant"]))
     print(Counter(y_pred))
+
+    fpr, tpr, _ = roc_curve(y_true, y_scores)
+    roc_auc = auc(fpr, tpr)
+
+    plt.figure(figsize=(6, 4))
+    plt.plot(fpr, tpr, color='blue', label=f"ROC curve (AUC = {roc_auc:.2f})")
+    plt.plot([0, 1], [0, 1], linestyle='--', color='gray')
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("ROC Curve")
+    plt.legend()
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig("roc_curve.png")
+    plt.close()
+
+    # Generează matricea de confuzie
+    cm = confusion_matrix(y_true, y_pred)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Benign", "Malignant"])
+
+    # Afișează și salvează imaginea
+    fig, ax = plt.subplots(figsize=(6, 6))
+    disp.plot(ax=ax, cmap="Blues", colorbar=False)
+    plt.title("Confusion Matrix")
+    plt.savefig("confusion_matrix.png")
+    plt.close()
+
+    #train vs val loss
+    plt.figure(figsize=(6, 4))
+    plt.plot(train_losses, label="Train Loss", color='blue')
+    plt.plot(val_losses, label="Val Loss", color='orange')
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title("Evoluția pierderii (Loss)")
+    plt.legend()
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig("train_val_loss.png")
+    plt.close()
+
+    # # histograma cu distributia probabilitatilor
+    # plt.hist(probs, bins=20, color="purple", alpha=0.7)
+    # plt.xlabel("Probabilitate malignitate")
+    # plt.ylabel("Număr imagini")
+    # plt.title("Distribuția scorurilor de malignitate")
+    # plt.savefig("prob_distribution.png")
+    # plt.close()
 
     torch.save(model.state_dict(), "melanoma_model.pth")
     print("Model salvat cu succes.")
