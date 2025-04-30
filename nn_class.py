@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# Image size (50x50 pixels)
+# Image size (64x64 pixels)
 img_size = 64
 
 
@@ -31,8 +31,3 @@ class Net(nn.Module):
         # x = F.softmax(x, dim=1)
         return x
 
-
-# net = Net()
-# test_img = torch.randn(1, 3, img_size, img_size)
-# output = net(test_img)
-# print("Network output for test image:", output)
