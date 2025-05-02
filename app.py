@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, request, jsonify
 from PIL import Image
 import torch
@@ -43,5 +45,5 @@ def predict():
     return jsonify(result)
 
 if __name__ == '__main__':
-    app.run(debug=True)
-    # app.run(host="0.0.0.0", port=8080)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(debug=False, host='0.0.0.0', port=port)

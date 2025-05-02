@@ -10,7 +10,7 @@ import requests
 # print("Status code:", response.status_code)
 # print("Response:", response.text)
 
-resp = requests.post("https://melanoma-detection-ai-563719261463.us-central1.run.app/predict", files={'image': open("demo_pics/melanoma_10179.jpg", 'rb')})
+resp = requests.post("https://melanoma-detection-ai.onrender.com", files={'image': open("demo_pics/melanoma_10179.jpg", 'rb')})
 
 print("Status code:", resp.status_code)
 print("Response:", resp.text)
