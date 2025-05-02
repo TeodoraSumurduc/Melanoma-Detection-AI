@@ -9,3 +9,7 @@ with open(image_path, 'rb') as img:
 
 print("Status code:", response.status_code)
 print("Response:", response.text)
+
+# resp = requests.post("http://127.0.0.1:5000/predict", files={'image': open("demo_pics/melanoma_10179.jpg", 'rb')})
+#
+# print(resp.json())

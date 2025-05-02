@@ -20,8 +20,10 @@ transform = transforms.Compose([
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image provided'}), 400
+    if request.method == "POST":
+        image_file = request.files.get('image')
+        if image_file is None or image_file.filename == "":
+            return jsonify({"error": "no image"})
 
     image_file = request.files['image']
     image = Image.open(image_file).convert("RGB")
@@ -41,5 +43,5 @@ def predict():
     return jsonify(result)
 
 if __name__ == '__main__':
-    # app.run(debug=True)
-    app.run(host="0.0.0.0", port=8080)
+    app.run(debug=True)
+    # app.run(host="0.0.0.0", port=8080)
