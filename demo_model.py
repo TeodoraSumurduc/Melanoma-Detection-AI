@@ -65,4 +65,4 @@ def apply_model(path, num_trials=10):
     }
 
 
-print(apply_model("demo_pics/melanoma_10179.jpg"))
+print(apply_model("demo_pics/melanoma_10117.jpg"))
