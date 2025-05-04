@@ -28,7 +28,7 @@ def collate_fn_melanoma(examples):
     return images_batch, labels_batch
 
 
-class config:
+class TrainModel:
     def __init__(self):
         self.img_size = 64
         self.batch_size = 100
@@ -86,6 +86,7 @@ class config:
         train_dataloader = self.data_loader(train_dataset)
         test_dataloader = self.data_loader(test_dataset)
 
+        # loss_fn = nn.CrossEntropyLoss(weight=torch.tensor([0.5, 4.0]).to(self.device)) #favorizez melanomul
         loss_fn = nn.CrossEntropyLoss()
         optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
@@ -205,9 +206,9 @@ class config:
 
 
 def main():
-    cfg = config()
-    train_dataset, test_dataset = cfg.get_dataset()
-    cfg.train_model(train_dataset, test_dataset)
+    train_model = TrainModel()
+    train_dataset, test_dataset = train_model.get_dataset()
+    train_model.train_model(train_dataset, test_dataset)
 
 
 if __name__ == "__main__":
