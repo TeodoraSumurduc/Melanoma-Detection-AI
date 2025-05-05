@@ -86,8 +86,8 @@ class TrainModel:
         train_dataloader = self.data_loader(train_dataset)
         test_dataloader = self.data_loader(test_dataset)
 
-        # loss_fn = nn.CrossEntropyLoss(weight=torch.tensor([0.5, 4.0]).to(self.device)) #favorizez melanomul
-        loss_fn = nn.CrossEntropyLoss()
+        loss_fn = nn.CrossEntropyLoss(weight=torch.tensor([0.5, 4.0]).to(self.device)) #favorizez melanomul
+        # loss_fn = nn.CrossEntropyLoss()
         optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
         train_losses = []
