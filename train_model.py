@@ -34,7 +34,7 @@ class config:
         self.batch_size = 100
         self.num_workers = 2
         self.epochs = 30
-        self.learning_rate = 1e-3
+        self.learning_rate = 0.001
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model_path = "melanoma_model.pth"
         self.model = Net().to(self.device)
@@ -72,6 +72,7 @@ class config:
         benign_training_dataset = MelanomaDataset(self.benign_training_folder, 0, transform=self.get_train_transform())
         malignant_training_dataset = MelanomaDataset(self.malignant_training_folder, 1,
                                                      transform=self.get_train_transform())
+
 
         benign_testing_dataset = MelanomaDataset(self.benign_testing_folder, 0, transform=self.get_test_transform())
         malignant_testing_dataset = MelanomaDataset(self.malignant_testing_folder, 1,
