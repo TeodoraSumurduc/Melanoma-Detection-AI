@@ -6,11 +6,9 @@ import torch.optim as optim
 from matplotlib import pyplot as plt
 from sklearn.metrics import classification_report, roc_curve, auc, confusion_matrix, ConfusionMatrixDisplay
 from torchvision import transforms
-
 from nn_class import Net
 from torch.utils.data import DataLoader, ConcatDataset
 from process_data import MelanomaDataset
-
 
 def collate_fn_melanoma(examples):
     images = []
@@ -34,7 +32,7 @@ class config:
         self.batch_size = 100
         self.num_workers = 2
         self.epochs = 30
-        self.learning_rate = 0.001
+        self.learning_rate = 1e-3
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model_path = "melanoma_model.pth"
         self.model = Net().to(self.device)
