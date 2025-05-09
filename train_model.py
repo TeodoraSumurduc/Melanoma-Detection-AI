@@ -6,7 +6,6 @@ import torch.optim as optim
 from matplotlib import pyplot as plt
 from sklearn.metrics import classification_report, roc_curve, auc, confusion_matrix, ConfusionMatrixDisplay
 from torchvision import transforms
-
 from nn_class import Net
 from torch.utils.data import DataLoader, ConcatDataset
 from process_data import MelanomaDataset
