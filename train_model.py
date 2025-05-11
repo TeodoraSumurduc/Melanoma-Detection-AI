@@ -6,6 +6,8 @@ import torch.optim as optim
 from matplotlib import pyplot as plt
 from sklearn.metrics import classification_report, roc_curve, auc, confusion_matrix, ConfusionMatrixDisplay
 from torchvision import transforms
+from torchvision import models
+from torchvision.models import resnet50, ResNet50_Weights
 
 from nn_class import Net
 from torch.utils.data import DataLoader, ConcatDataset
@@ -33,11 +35,33 @@ class config:
         self.img_size = 64
         self.batch_size = 100
         self.num_workers = 2
+        self.num_classes = 2
         self.epochs = 30
         self.learning_rate = 1e-3
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model_path = "melanoma_model.pth"
-        self.model = Net().to(self.device)
+        # self.model = Net().to(self.device)
+
+
+        # Load pre-trained ResNet50 with weights
+        self.resnet = resnet50(weights=ResNet50_Weights.DEFAULT)
+
+        # Freeze all layers
+        for param in self.resnet.parameters():
+            param.requires_grad = False
+
+        # Replace the final fully connected layer to match our number of classes
+        in_features = self.resnet.fc.in_features
+        self.resnet.fc = nn.Linear(in_features, self.num_classes)
+
+        # Only the final layer will be trainable
+        for param in self.resnet.fc.parameters():
+            param.requires_grad = True
+
+        # Move model to device
+        self.resnet = self.resnet.to(self.device)
+
+
         self.benign_training_folder = "melanoma_cancer_dataset/train/benign/"
         self.malignant_training_folder = "melanoma_cancer_dataset/train/malignant/"
         self.benign_testing_folder = "melanoma_cancer_dataset/test/benign/"
@@ -87,14 +111,14 @@ class config:
         test_dataloader = self.data_loader(test_dataset)
 
         loss_fn = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        optimizer = optim.Adam(self.resnet.fc.parameters(), lr=self.learning_rate)
 
         train_losses = []
         val_losses = []
 
         for epoch in range(self.epochs):
 
-            self.model.train()
+            self.resnet.train()
             train_loss = 0.0
 
             for batch in train_dataloader:
@@ -104,7 +128,7 @@ class config:
                 labels = labels.to(self.device)
 
                 optimizer.zero_grad()
-                outputs = self.model(images)
+                outputs = self.resnet(images)
                 loss = loss_fn(outputs, labels)
                 loss.backward()
                 optimizer.step()
@@ -112,7 +136,7 @@ class config:
 
             train_loss /= len(train_dataloader)
 
-            self.model.eval()
+            self.resnet.eval()
             val_loss = 0.0
             with torch.no_grad():
                 for batch in test_dataloader:
@@ -121,7 +145,7 @@ class config:
                     images = images.to(self.device)
                     labels = labels.to(self.device)
 
-                    outputs = self.model(images)
+                    outputs = self.resnet(images)
                     loss = loss_fn(outputs, labels)
                     val_loss += loss.item()
 
@@ -137,7 +161,7 @@ class config:
         print("Training completed.")
 
     def save_model(self):
-        torch.save(self.model.state_dict(), self.model_path)
+        torch.save(self.resnet.state_dict(), self.model_path)
         print(f"Model saved to {self.model_path}")
 
     def graphs(self, train_losses, val_losses, test_dataloader):
@@ -146,13 +170,13 @@ class config:
 
         y_scores = []
 
-        self.model.eval()
+        self.resnet.eval()
         with torch.no_grad():
             for images, labels in test_dataloader:
                 images = images.to(self.device)
                 labels = labels.to(self.device)
 
-                outputs = self.model(images)
+                outputs = self.resnet(images)
                 preds = torch.argmax(outputs, dim=1)
                 print("Labeluri:", labels[:10])
                 print("Predicții:", torch.argmax(outputs, dim=1)[:10])
