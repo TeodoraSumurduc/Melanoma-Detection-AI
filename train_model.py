@@ -6,6 +6,7 @@ import torch.optim as optim
 from matplotlib import pyplot as plt
 from sklearn.metrics import classification_report, roc_curve, auc, confusion_matrix, ConfusionMatrixDisplay
 from torchvision import transforms
+from torchvision.models import DenseNet121_Weights, densenet121
 
 from nn_class import Net
 from torch.utils.data import DataLoader, ConcatDataset
@@ -33,11 +34,26 @@ class config:
         self.img_size = 64
         self.batch_size = 100
         self.num_workers = 2
-        self.epochs = 30
+        self.num_classes = 2
+        self.epochs = 50
         self.learning_rate = 1e-3
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model_path = "melanoma_model.pth"
-        self.model = Net().to(self.device)
+        # Încarcă DenseNet121 cu greutăți pre-antrenate
+        weights = DenseNet121_Weights.DEFAULT
+        self.model = densenet121(weights=weights)
+
+        # Îngheață toți parametrii
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        # Schimbă clasorul pentru 2 clase
+        num_ftrs = self.model.classifier.in_features
+        self.model.classifier = nn.Linear(num_ftrs, self.num_classes)
+
+        # Trimite modelul pe GPU sau CPU
+        self.model = self.model.to(self.device)
+
+        self.model_path = "melanoma_densenet_model.pth"
         self.benign_training_folder = "melanoma_cancer_dataset/train/benign/"
         self.malignant_training_folder = "melanoma_cancer_dataset/train/malignant/"
         self.benign_testing_folder = "melanoma_cancer_dataset/test/benign/"
