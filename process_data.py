@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader, Dataset, ConcatDataset
 from PIL import Image
 
 class MelanomaImageDataset(Dataset):
-    def __init__(self, folder, label, img_size=64):
+    def __init__(self, folder, label, img_size=32):
         self.data = []
         self.label = label
         for filename in os.listdir(folder):
