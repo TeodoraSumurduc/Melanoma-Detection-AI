@@ -199,7 +199,7 @@ class TrainModel:
         plt.ylabel("Loss")
         plt.title("Evoluția pierderii (Loss)")
         plt.legend()
-        plt.grid()
+        plt.grid()  
         plt.tight_layout()
         plt.savefig("train_val_loss.png")
         plt.close()
