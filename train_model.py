@@ -42,6 +42,8 @@ class TrainModel:
         self.malignant_training_folder = "melanoma_cancer_dataset/train/malignant/"
         self.benign_testing_folder = "melanoma_cancer_dataset/test/benign/"
         self.malignant_testing_folder = "melanoma_cancer_dataset/test/malignant/"
+        self.benign_val_folder = "melanoma_cancer_dataset/val/benign/"
+        self.malignant_val_folder = "melanoma_cancer_dataset/val/malignant/"
 
     def data_loader(self, dataset, collate_fn_melanoma=None):
         return DataLoader(dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers,
@@ -77,14 +79,20 @@ class TrainModel:
         malignant_testing_dataset = MelanomaDataset(self.malignant_testing_folder, 1,
                                                     transform=self.get_test_transform())
 
+        benign_val_dataset = MelanomaDataset(self.benign_val_folder, 0, transform=self.get_test_transform())
+        malignant_val_dataset = MelanomaDataset(self.malignant_val_folder, 1,
+                                                transform=self.get_test_transform())
+
         train_dataset = ConcatDataset([benign_training_dataset, malignant_training_dataset])
         test_dataset = ConcatDataset([benign_testing_dataset, malignant_testing_dataset])
+        val_dataset = ConcatDataset([benign_val_dataset, malignant_val_dataset])
 
-        return train_dataset, test_dataset
+        return train_dataset, test_dataset, val_dataset
 
-    def train_model(self, train_dataset, test_dataset):
+    def train_model(self, train_dataset, test_dataset, val_dataset):
         train_dataloader = self.data_loader(train_dataset)
         test_dataloader = self.data_loader(test_dataset)
+        val_dataloader = self.data_loader(val_dataset)
 
         loss_fn = nn.CrossEntropyLoss(weight=torch.tensor([0.5, 4.0]).to(self.device)) #favorizez melanomul
         # loss_fn = nn.CrossEntropyLoss()
@@ -116,7 +124,7 @@ class TrainModel:
             self.model.eval()
             val_loss = 0.0
             with torch.no_grad():
-                for batch in test_dataloader:
+                for batch in val_dataloader:
                     images, labels = batch
 
                     images = images.to(self.device)
@@ -126,7 +134,7 @@ class TrainModel:
                     loss = loss_fn(outputs, labels)
                     val_loss += loss.item()
 
-            val_loss /= len(test_dataloader)
+            val_loss /= len(val_dataloader)
 
             train_losses.append(train_loss)
             val_losses.append(val_loss)
@@ -206,9 +214,9 @@ class TrainModel:
 
 
 def main():
-    train_model = TrainModel()
-    train_dataset, test_dataset = train_model.get_dataset()
-    train_model.train_model(train_dataset, test_dataset)
+    cfg = TrainModel()
+    train_dataset, test_dataset, val_dataset = cfg.get_dataset()
+    cfg.train_model(train_dataset, test_dataset, val_dataset)
 
 
 if __name__ == "__main__":
