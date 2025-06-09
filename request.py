@@ -21,7 +21,7 @@ import shutil
 import random
 
 # Calea către folderul original de test
-original_test_dir = 'demo_pics/test'
+original_test_dir = 'melanoma_cancer_dataset/test'
 # Calea unde vom salva noile foldere
 base_output_dir = 'melanoma_cancer_dataset'
 

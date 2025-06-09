@@ -5,12 +5,13 @@ import torch.nn as nn
 import torch.optim as optim
 from matplotlib import pyplot as plt
 from sklearn.metrics import classification_report, roc_curve, auc, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.model_selection import KFold
 from torchvision import transforms
 from torchvision import models
 from torchvision.models import resnet50, ResNet50_Weights
 
 from nn_class import Net
-from torch.utils.data import DataLoader, ConcatDataset
+from torch.utils.data import DataLoader, ConcatDataset, Subset
 from process_data import MelanomaDataset
 
 
@@ -66,8 +67,6 @@ class config:
         self.malignant_training_folder = "melanoma_cancer_dataset/train/malignant/"
         self.benign_testing_folder = "melanoma_cancer_dataset/test/benign/"
         self.malignant_testing_folder = "melanoma_cancer_dataset/test/malignant/"
-        self.benign_val_folder = "melanoma_cancer_dataset/val/benign/"
-        self.malignant_val_folder = "melanoma_cancer_dataset/val/malignant/"
 
     def data_loader(self, dataset, collate_fn_melanoma=None):
         return DataLoader(dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers,
@@ -103,101 +102,154 @@ class config:
         malignant_testing_dataset = MelanomaDataset(self.malignant_testing_folder, 1,
                                                     transform=self.get_test_transform())
 
-        benign_val_dataset = MelanomaDataset(self.benign_val_folder, 0, transform=self.get_test_transform())
-        malignant_val_dataset = MelanomaDataset(self.malignant_val_folder, 1,
-                                                transform=self.get_test_transform())
+        # benign_val_dataset = MelanomaDataset(self.benign_val_folder, 0, transform=self.get_test_transform())
+        # malignant_val_dataset = MelanomaDataset(self.malignant_val_folder, 1,
+        #                                         transform=self.get_test_transform())
 
         train_dataset = ConcatDataset([benign_training_dataset, malignant_training_dataset])
         test_dataset = ConcatDataset([benign_testing_dataset, malignant_testing_dataset])
-        val_dataset = ConcatDataset([benign_val_dataset, malignant_val_dataset])
 
-        return train_dataset, test_dataset, val_dataset
+        return train_dataset, test_dataset
 
-    def train_model(self, train_dataset, test_dataset, val_dataset):
-        train_dataloader = self.data_loader(train_dataset)
-        test_dataloader = self.data_loader(test_dataset)
-        val_dataloader = self.data_loader(val_dataset)
+    def train_model(self, dataset, test_dataset):
+        kf = KFold(n_splits=5, shuffle=True, random_state=42)
+        all_val_losses = []
+        all_fold_train_losses = []
+        all_fold_val_losses = []
 
+        for fold, (train_idx, val_idx) in enumerate(kf.split(dataset)):
+            print(f"\n--- Fold {fold + 1} --- (validare internă)")
+
+            train_subset = Subset(dataset, train_idx)
+            val_subset = Subset(dataset, val_idx)
+
+            train_loader = self.data_loader(train_subset, collate_fn_melanoma)
+            val_loader = self.data_loader(val_subset, collate_fn_melanoma)
+
+            model = Net().to(self.device)
+            loss_fn = nn.CrossEntropyLoss()
+            optimizer = optim.Adam(model.parameters(), lr=self.learning_rate)
+
+            train_losses = []
+            val_losses = []
+
+            for epoch in range(5):
+                model.train()
+                train_loss = 0.0
+
+                for batch in train_loader:
+                    images, labels = batch
+                    images = images.to(self.device)
+                    labels = labels.to(self.device)
+
+                    optimizer.zero_grad()
+                    outputs = model(images)
+                    loss = loss_fn(outputs, labels)
+                    loss.backward()
+                    optimizer.step()
+                    train_loss += loss.item()
+
+                train_loss /= len(train_loader)
+
+                model.eval()
+                val_loss = 0.0
+                with torch.no_grad():
+                    for batch in val_loader:
+                        images, labels = batch
+                        images = images.to(self.device)
+                        labels = labels.to(self.device)
+
+                        outputs = model(images)
+                        loss = loss_fn(outputs, labels)
+                        val_loss += loss.item()
+
+                val_loss /= len(val_loader)
+
+                train_losses.append(train_loss)
+                val_losses.append(val_loss)
+
+                print(f"Fold {fold + 1} | Epoch {epoch + 1}/5 | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
+
+            all_val_losses.append(val_losses[-1])
+            all_fold_train_losses.append(train_losses)
+            all_fold_val_losses.append(val_losses)
+
+            # Grafic separat pentru fiecare fold
+            plt.figure(figsize=(6, 4))
+            plt.plot(train_losses, label=f"Train Loss Fold {fold + 1}", linestyle='-')
+            plt.plot(val_losses, label=f"Val Loss Fold {fold + 1}", linestyle='--')
+            plt.xlabel("Epoch")
+            plt.ylabel("Loss")
+            plt.title(f"Train/Val Loss - Fold {fold + 1}")
+            plt.legend()
+            plt.grid()
+            plt.tight_layout()
+            plt.savefig(f"fold_{fold + 1}_loss.png")
+            plt.close()
+
+        avg_val_loss = sum(all_val_losses) / len(all_val_losses)
+        print(f"\n>>> Cross-validation completă. Val Loss mediu: {avg_val_loss:.4f}")
+        print(">>> Încep antrenarea finală pe tot setul de antrenare.")
+
+        # Antrenare finală pe tot setul
+        train_loader = self.data_loader(dataset, collate_fn_melanoma)
+        model = Net().to(self.device)
         loss_fn = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(self.resnet.fc.parameters(), lr=self.learning_rate)
+        optimizer = optim.Adam(model.parameters(), lr=self.learning_rate)
 
         train_losses = []
-        val_losses = []
 
         for epoch in range(self.epochs):
-
-            self.resnet.train()
-            train_loss = 0.0
-
-            for batch in train_dataloader:
+            model.train()
+            total_loss = 0.0
+            for batch in train_loader:
                 images, labels = batch
-
                 images = images.to(self.device)
                 labels = labels.to(self.device)
 
                 optimizer.zero_grad()
-                outputs = self.resnet(images)
+                outputs = model(images)
                 loss = loss_fn(outputs, labels)
                 loss.backward()
                 optimizer.step()
-                train_loss += loss.item()
+                total_loss += loss.item()
 
-            train_loss /= len(train_dataloader)
+            total_loss /= len(train_loader)
+            train_losses.append(total_loss)
+            print(f"Final Epoch {epoch + 1}/{self.epochs} | Train Loss: {total_loss:.4f}")
 
-            self.resnet.eval()
-            val_loss = 0.0
-            with torch.no_grad():
-                for batch in val_dataloader:
-                    images, labels = batch
+        self.save_model(model)
+        test_loader = self.data_loader(test_dataset, collate_fn_melanoma)
+        self.graphs(model, train_losses, test_loader)
+        print("\nModel final antrenat și salvat. Evaluare pe test set efectuată.")
 
-                    images = images.to(self.device)
-                    labels = labels.to(self.device)
+    def save_model(self, model):
+        torch.save(model.state_dict(), self.model_path)
+        print(f"Model final salvat în {self.model_path}")
 
-                    outputs = self.resnet(images)
-                    loss = loss_fn(outputs, labels)
-                    val_loss += loss.item()
-
-            val_loss /= len(val_dataloader)
-
-            train_losses.append(train_loss)
-            val_losses.append(val_loss)
-
-            print(f"Epoch {epoch + 1}/{self.epochs} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
-
-        self.save_model()
-        self.graphs(train_losses, val_losses, test_dataloader)
-        print("Training completed.")
-
-    def save_model(self):
-        torch.save(self.resnet.state_dict(), self.model_path)
-        print(f"Model saved to {self.model_path}")
-
-    def graphs(self, train_losses, val_losses, test_dataloader):
+    def graphs(self, model, train_losses, test_loader):
         y_true = []
         y_pred = []
-
         y_scores = []
 
-        self.resnet.eval()
+        model.eval()
         with torch.no_grad():
-            for images, labels in test_dataloader:
+            for images, labels in test_loader:
                 images = images.to(self.device)
                 labels = labels.to(self.device)
 
-                outputs = self.resnet(images)
+                outputs = model(images)
                 preds = torch.argmax(outputs, dim=1)
-                print("Labeluri:", labels[:10])
-                print("Predicții:", torch.argmax(outputs, dim=1)[:10])
                 y_true.extend(labels.cpu().numpy())
                 y_pred.extend(preds.cpu().numpy())
 
                 probs = torch.softmax(outputs, dim=1)[:, 1]
                 y_scores.extend(probs.cpu().numpy())
 
+        print("\nRaport de clasificare pe test set:")
         print(classification_report(y_true, y_pred, target_names=["benign", "malignant"]))
         print(Counter(y_pred))
 
-        # ROC curve
         fpr, tpr, _ = roc_curve(y_true, y_scores)
         roc_auc = auc(fpr, tpr)
 
@@ -210,37 +262,32 @@ class config:
         plt.legend()
         plt.grid()
         plt.tight_layout()
-        plt.savefig("roc_curve.png")
+        plt.savefig("roc_curve_final.png")
         plt.close()
 
-        # matricea de confuzie
         cm = confusion_matrix(y_true, y_pred)
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Benign", "Malignant"])
         fig, ax = plt.subplots(figsize=(6, 6))
         disp.plot(ax=ax, cmap="Blues", colorbar=False)
         plt.title("Confusion Matrix")
-        plt.savefig("confusion_matrix.png")
+        plt.savefig("confusion_matrix_final.png")
         plt.close()
 
-        # train vs val loss
         plt.figure(figsize=(6, 4))
         plt.plot(train_losses, label="Train Loss", color='blue')
-        plt.plot(val_losses, label="Val Loss", color='orange')
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
-        plt.title("Evoluția pierderii (Loss)")
+        plt.title("Evoluția pierderii (Loss) - Final")
         plt.legend()
         plt.grid()
         plt.tight_layout()
-        plt.savefig("train_val_loss.png")
+        plt.savefig("train_loss_final.png")
         plt.close()
-
 
 def main():
     cfg = config()
-    train_dataset, test_dataset = cfg.get_dataset()
-    cfg.train_model(train_dataset, test_dataset)
-
+    dataset, train_dataset = cfg.get_dataset()
+    cfg.train_model(dataset, train_dataset)
 
 if __name__ == "__main__":
     main()
