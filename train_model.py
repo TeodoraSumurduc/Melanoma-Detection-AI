@@ -98,7 +98,8 @@ class config:
             val_loader = self.data_loader(val_subset, collate_fn_melanoma)
 
             model = Net().to(self.device)
-            loss_fn = nn.CrossEntropyLoss(weight=torch.tensor([1, 4.0]).to(self.device)) #favorizez melanomul
+            loss_fn = nn.CrossEntropyLoss()
+            # loss_fn = nn.CrossEntropyLoss(weight=torch.tensor([1, 4.0]).to(self.device)) #favorizez melanomul
             optimizer = optim.Adam(model.parameters(), lr=self.learning_rate)
 
             train_losses = []
@@ -165,7 +166,8 @@ class config:
         # Antrenare finală pe tot setul
         train_loader = self.data_loader(dataset, collate_fn_melanoma)
         model = Net().to(self.device)
-        loss_fn = nn.CrossEntropyLoss(weight=torch.tensor([1, 4.0]).to(self.device)) #favorizez melanomul
+        loss_fn = nn.CrossEntropyLoss()
+        # loss_fn = nn.CrossEntropyLoss(weight=torch.tensor([1, 4.0]).to(self.device)) #favorizez melanomul
         optimizer = optim.Adam(model.parameters(), lr=self.learning_rate)
 
         train_losses = []
